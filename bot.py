@@ -14,6 +14,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters,
 )
+from database import initialize_database, insert_order
 
 # Enable logging
 logging.basicConfig(
@@ -162,6 +163,18 @@ async def trip_time(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "В ближайшее время с вами свяжется водитель.",
         reply_markup=ReplyKeyboardRemove(),
     )
+
+    # Save order to the database
+    user_id = update.effective_user.id
+    insert_order(
+        user_id=user_id,
+        from_city=data['from_city'],
+        to_city=data['to_city'],
+        tariff=data['tariff'],
+        trip_time=data['trip_time'],
+        phone_number=data['phone_number']
+    )
+
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -210,10 +223,11 @@ async def support_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 # --- Main Bot Logic ---
 def main() -> None:
     """Run the bot."""
+    initialize_database()
     try:
         with open('config.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
-        token = config.get('TELEGRAM_TOKEN')
+        token = config.get('CLIENT_TELEGRAM_TOKEN')
         support_chat_id = config.get('SUPPORT_CHAT_ID')
     except FileNotFoundError:
         logger.error("config.json not found.")
@@ -222,8 +236,8 @@ def main() -> None:
         logger.error("Error decoding config.json.")
         return
 
-    if not token or token == "YOUR_TOKEN_HERE":
-        logger.error("TELEGRAM_TOKEN not found or is a placeholder in config.json.")
+    if not token or token == "YOUR_CLIENT_TOKEN_HERE":
+        logger.error("CLIENT_TELEGRAM_TOKEN not found or is a placeholder in config.json.")
         return
 
     application = Application.builder().token(token).post_init(post_init).build()

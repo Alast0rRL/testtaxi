@@ -1,0 +1,105 @@
+
+import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
+
+DB_FILE = "orders.db"
+
+def initialize_database():
+    try:
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                from_city TEXT NOT NULL,
+                to_city TEXT NOT NULL,
+                tariff TEXT NOT NULL,
+                trip_time TEXT NOT NULL,
+                phone_number TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Ожидает'
+            )
+        """)
+        
+        conn.commit()
+        logger.info("Database initialized successfully.")
+
+    except sqlite3.Error as e:
+        logger.error(f"Database error: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+def insert_order(user_id, from_city, to_city, tariff, trip_time, phone_number):
+    """Inserts a new order into the database."""
+    try:
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO orders (user_id, from_city, to_city, tariff, trip_time, phone_number)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, from_city, to_city, tariff, trip_time, phone_number))
+        
+        conn.commit()
+        logger.info(f"New order inserted for user {user_id}")
+
+    except sqlite3.Error as e:
+        logger.error(f"Failed to insert order: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+def get_waiting_orders():
+    """Retrieves all orders with the status 'Ожидает'."""
+    try:
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM orders WHERE status = 'Ожидает'")
+        orders = cursor.fetchall()
+        return orders
+
+    except sqlite3.Error as e:
+        logger.error(f"Failed to get waiting orders: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+def get_order_by_id(order_id):
+    """Retrievess a single order by its ID."""
+    try:
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
+        order = cursor.fetchone()
+        return order
+
+    except sqlite3.Error as e:
+        logger.error(f"Failed to get order by ID: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+def update_order_status(order_id, new_status):
+    """Updates the status of a specific order."""
+    try:
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        cursor = conn.cursor()
+        
+        cursor.execute("UPDATE orders SET status = ? WHERE id = ?", (new_status, order_id))
+        
+        conn.commit()
+        logger.info(f"Order {order_id} status updated to {new_status}")
+
+    except sqlite3.Error as e:
+        logger.error(f"Failed to update order status: {e}")
+    finally:
+        if conn:
+            conn.close()
