@@ -96,6 +96,23 @@ def get_order_by_id(order_id):
         if conn:
             conn.close()
 
+def get_user_orders(user_id):
+    """Retrieves all orders for a specific user."""
+    try:
+        conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC", (user_id,))
+        orders = cursor.fetchall()
+        return orders
+
+    except sqlite3.Error as e:
+        logger.error(f"Failed to get user orders: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
 def update_order_status(order_id, new_status):
     """Updates the status of a specific order."""
     try:
